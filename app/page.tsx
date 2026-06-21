@@ -19,27 +19,17 @@ export default function Home() {
 
   const stepProps = { formData, setFormData, nextStep, prevStep };
 
-  const renderStep = () => {
-    switch (currentStep) {
-      case 1:
-        return <Step1Personal {...stepProps} />;
-      case 2:
-        return <Step2Level {...stepProps} />;
-      case 3:
-        return <Step3Seats {...stepProps} />;
-      case 4:
-        return <Step4Summary {...stepProps} />;
-      case 5:
-        return <Step5Payment {...stepProps} />;
-      default:
-        return null;
-    }
-  };
+  let stepContent = null;
+  if (currentStep === 1) stepContent = <Step1Personal {...stepProps} />;
+  else if (currentStep === 2) stepContent = <Step2Level {...stepProps} />;
+  else if (currentStep === 3) stepContent = <Step3Seats {...stepProps} />;
+  else if (currentStep === 4) stepContent = <Step4Summary {...stepProps} />;
+  else if (currentStep === 5) stepContent = <Step5Payment {...stepProps} />;
 
   return (
     <main>
       <FormWrapper header={<StepIndicator currentStep={currentStep} />}>
-        {renderStep()}
+        {stepContent}
       </FormWrapper>
     </main>
   );
