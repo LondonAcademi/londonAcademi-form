@@ -16,8 +16,10 @@ export default function Home() {
 
   const nextStep = () => setCurrentStep((step) => Math.min(step + 1, 5));
   const prevStep = () => setCurrentStep((step) => Math.max(step - 1, 1));
+  const goToStep = (step: number) =>
+    setCurrentStep(Math.min(Math.max(step, 1), 5));
 
-  const stepProps = { formData, setFormData, nextStep, prevStep };
+  const stepProps = { formData, setFormData, nextStep, prevStep, goToStep };
 
   let stepContent = null;
   if (currentStep === 1) stepContent = <Step1Personal {...stepProps} />;

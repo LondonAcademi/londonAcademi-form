@@ -55,6 +55,7 @@ export type FormStepProps = {
   setFormData: Dispatch<SetStateAction<FormData>>
   nextStep: () => void
   prevStep: () => void
+  goToStep: (step: number) => void
 }
 
 export const PRIX_SIEGE = 200

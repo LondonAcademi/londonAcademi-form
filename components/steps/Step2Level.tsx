@@ -23,11 +23,23 @@ const NIVEAUX_DISPLAY = [
 const step2Schema = z.object({
   niveau_id: z.string().min(1, "Veuillez sélectionner un niveau"),
   classe_id: z.string().min(1, "Veuillez sélectionner une classe"),
+  child_age: z
+    .number({ message: "Âge requis" })
+    .refine((value) => !Number.isNaN(value), { message: "Âge requis" })
+    .min(3, "Minimum 3 ans")
+    .max(25, "Maximum 25 ans"),
+  current_school: z.string().min(2, "Minimum 2 caractères"),
+  additional_info: z.string().optional(),
 });
 
 type Step2FormValues = z.infer<typeof step2Schema>;
 
-const errorClassName = "mt-1 text-xs text-red-500";
+const inputClassName =
+  "w-full rounded-2xl border border-transparent bg-[#f0f4f8] px-4 py-3 text-sm text-[#0a2342] outline-none placeholder:text-gray-400 focus:border-[#0a2342]/30 focus:bg-white";
+
+const labelClassName = "mb-1.5 block text-sm font-medium text-[#0a2342]";
+
+const errorClassName = "mt-1 text-sm text-red-500";
 
 export function Step2Level({
   formData,
@@ -43,6 +55,7 @@ export function Step2Level({
   const [classesError, setClassesError] = useState<string | null>(null);
 
   const {
+    register,
     handleSubmit,
     watch,
     setValue,
@@ -52,6 +65,9 @@ export function Step2Level({
     defaultValues: {
       niveau_id: formData.niveau_id,
       classe_id: formData.classe_id,
+      child_age: formData.child_age ?? undefined,
+      current_school: formData.current_school,
+      additional_info: formData.additional_info,
     },
   });
 
@@ -158,14 +174,17 @@ export function Step2Level({
     const niveau = niveaux.find((n) => n.id === data.niveau_id);
     const classe = classes.find((c) => c.id === data.classe_id);
 
-    setFormData((prev) => ({
-      ...prev,
+    setFormData({
+      ...formData,
       niveau_id: data.niveau_id,
       niveau_nom: niveau?.nom ?? "",
       classe_id: data.classe_id,
       classe_nom: classe?.nom ?? "",
       prix_reservation: classe?.prix_reservation ?? 0,
-    }));
+      child_age: data.child_age,
+      current_school: data.current_school,
+      additional_info: data.additional_info || "",
+    });
 
     nextStep();
   };
@@ -302,6 +321,53 @@ export function Step2Level({
           )}
         </div>
       )}
+
+      {/* Part C — Child info */}
+      <div>
+        <label htmlFor="child_age" className={labelClassName}>
+          L&apos;âge de votre enfant (Child&apos;s Age){" "}
+          <span className="text-red-500">*</span>
+        </label>
+        <input
+          id="child_age"
+          type="number"
+          min={3}
+          max={25}
+          className={inputClassName}
+          {...register("child_age", { valueAsNumber: true })}
+        />
+        {errors.child_age && (
+          <p className={errorClassName}>{errors.child_age.message}</p>
+        )}
+      </div>
+
+      <div>
+        <label htmlFor="current_school" className={labelClassName}>
+          L&apos;école actuelle de votre enfant (Current School){" "}
+          <span className="text-red-500">*</span>
+        </label>
+        <input
+          id="current_school"
+          type="text"
+          className={inputClassName}
+          {...register("current_school")}
+        />
+        {errors.current_school && (
+          <p className={errorClassName}>{errors.current_school.message}</p>
+        )}
+      </div>
+
+      <div>
+        <label htmlFor="additional_info" className={labelClassName}>
+          Informations complémentaires (Additional Information)
+        </label>
+        <textarea
+          id="additional_info"
+          rows={4}
+          className={cn(inputClassName, "resize-none")}
+          {...register("additional_info")}
+        />
+      </div>
 
       {/* Navigation */}
       <div className="mt-2 flex gap-3">
