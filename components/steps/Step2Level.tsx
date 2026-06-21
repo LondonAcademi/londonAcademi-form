@@ -14,11 +14,23 @@ import { cn } from "@/lib/utils";
 import type { Classe, FormStepProps, Niveau } from "@/types";
 
 const NIVEAUX_DISPLAY = [
-  { emoji: "🎒", nom: "Préscolaire", ageRange: "3-6 ans" },
-  { emoji: "📚", nom: "Primaire", ageRange: "6-12 ans" },
-  { emoji: "🏫", nom: "Collège", ageRange: "12-15 ans" },
-  { emoji: "🎓", nom: "Lycée", ageRange: "15-18 ans" },
+  { emoji: "🧸", nom: "Maternel" },
+  { emoji: "📚", nom: "Primaire" },
+  { emoji: "🏫", nom: "Secondaire" },
 ] as const;
+
+const NIVEAUX_NAMES = ["Maternel", "Primaire", "Secondaire"];
+
+function resolveNiveaux(supabaseNiveaux: Niveau[]): Niveau[] {
+  const filtered = supabaseNiveaux.filter((n) =>
+    NIVEAUX_NAMES.includes(n.nom)
+  );
+
+  return NIVEAUX_NAMES.map((nom, index) => {
+    const found = filtered.find((n) => n.nom === nom);
+    return found ?? { id: nom.toLowerCase(), nom, ordre: index };
+  });
+}
 
 const step2Schema = z.object({
   niveau_id: z.string().min(1, "Veuillez sélectionner un niveau"),
@@ -82,11 +94,11 @@ export function Step2Level({
         setLoadingNiveaux(true);
         const data = await getNiveaux();
         if (mounted) {
-          setNiveaux(data as Niveau[]);
+          setNiveaux(resolveNiveaux((data as Niveau[]) ?? []));
         }
       } catch {
         if (mounted) {
-          setNiveaux([]);
+          setNiveaux(resolveNiveaux([]));
         }
       } finally {
         if (mounted) {
@@ -213,24 +225,21 @@ export function Step2Level({
             Chargement des niveaux...
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             {NIVEAUX_DISPLAY.map((item) => {
               const niveauId = getNiveauIdByNom(item.nom);
               const isSelected = selectedNiveauId === niveauId && niveauId !== "";
-              const isDisabled = !niveauId;
 
               return (
                 <button
                   key={item.nom}
                   type="button"
-                  disabled={isDisabled}
                   onClick={() => niveauId && handleNiveauSelect(niveauId)}
                   className={cn(
                     "relative flex flex-col items-start rounded-2xl border-2 p-4 text-left transition-all",
                     isSelected
                       ? "border-[#0a2342] bg-[#0a2342]/5"
-                      : "border-transparent bg-[#f0f4f8] hover:border-[#0a2342]/20",
-                    isDisabled && "cursor-not-allowed opacity-50"
+                      : "border-transparent bg-[#f0f4f8] hover:border-[#0a2342]/20"
                   )}
                 >
                   {isSelected && (
@@ -240,7 +249,6 @@ export function Step2Level({
                   )}
                   <span className="text-2xl">{item.emoji}</span>
                   <p className="mt-2 font-medium text-[#0a2342]">{item.nom}</p>
-                  <p className="text-xs text-gray-500">({item.ageRange})</p>
                 </button>
               );
             })}
