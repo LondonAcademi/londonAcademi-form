@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CheckCircle2, Loader2, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PRIX_SIEGE, type FormStepProps } from "@/types";
+import type { FormStepProps } from "@/types";
 
 const inputClassName =
   "w-full rounded-2xl border border-transparent bg-[#f0f4f8] px-4 py-3 text-sm text-[#0a2342] outline-none transition-colors placeholder:text-gray-400 focus:border-[#0a2342]/30 focus:bg-white";
@@ -19,8 +19,7 @@ export function Step5Payment({ formData, prevStep }: FormStepProps) {
   const [success, setSuccess] = useState(false);
 
   const prixTotal =
-    formData.prix_total ||
-    formData.prix_reservation + (formData.prix_siege || 0);
+    formData.prix_total || formData.prix_reservation;
 
   const handlePayment = async () => {
     setLoading(true);
@@ -156,7 +155,7 @@ export function Step5Payment({ formData, prevStep }: FormStepProps) {
         <p className="mt-1 text-gray-600">Campus: {formData.campus_nom}</p>
         {formData.seat_number != null && (
           <p className="mt-1 text-gray-600">
-            Siège N°{formData.seat_number}: +{PRIX_SIEGE} MAD
+            Siège N°{formData.seat_number} sélectionné
           </p>
         )}
         <p className="mt-2 font-bold text-[#0a2342]">

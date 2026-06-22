@@ -94,21 +94,21 @@ export function Step4Visite({
 
   if (success) {
     return (
-      <div className="flex flex-col items-center gap-4 py-4 text-center">
+      <div className="flex flex-col items-center gap-4 py-6 text-center">
         <CheckCircle2 className="h-20 w-20 text-green-500" strokeWidth={1.5} />
         <h2 className="text-2xl font-bold text-[#0a2342]">
-          Demande de visite enregistrée!
+          Votre document a été envoyé
         </h2>
-        <p className="text-sm text-gray-600">
-          Merci {formData.prenom}, nous avons bien reçu votre demande de visite.
+        <p className="max-w-sm text-base leading-relaxed text-gray-600">
+          C&apos;est en liste d&apos;attente pour décider.
         </p>
         <p className="text-sm text-gray-500">
-          Un email de confirmation sera envoyé à {formData.email}
+          Merci {formData.prenom}, nous vous contacterons à {formData.email}
         </p>
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="mt-2 w-full rounded-2xl bg-[#0a2342] py-3.5 text-sm font-semibold text-white transition-colors hover:bg-[#0a2342]/90"
+          className="mt-4 w-full rounded-2xl bg-[#0a2342] py-3.5 text-sm font-semibold text-white transition-colors hover:bg-[#0a2342]/90"
         >
           Retour à l&apos;accueil
         </button>

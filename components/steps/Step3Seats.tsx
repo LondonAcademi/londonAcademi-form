@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Armchair, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PRIX_SIEGE, type FormData, type FormStepProps } from "@/types";
+import type { FormStepProps } from "@/types";
 
 const TOTAL_SEATS = 20;
 
@@ -23,23 +23,9 @@ function getSeatSeed(campusId: string, niveauId: string) {
   return `${campusId}-${niveauId}-${dateStr}`;
 }
 
-function getPlacesReservees(campusId: string, niveauId: string): number {
-  const random = createSeededRandom(getSeatSeed(campusId, niveauId));
-  return Math.floor(random() * 10) + 8;
-}
-
-function getPlacesDisponibles(
-  campusId: string,
-  niveauId: string,
-  placesReservees: number
-): number {
-  const realAvailable = TOTAL_SEATS - placesReservees;
-  if (realAvailable <= 0) return 0;
-
+function getPlacesDisponibles(campusId: string, niveauId: string): number {
   const random = createSeededRandom(`${getSeatSeed(campusId, niveauId)}-dispo`);
-  const min = Math.min(2, realAvailable);
-  const max = realAvailable;
-  return Math.floor(random() * (max - min + 1)) + min;
+  return random() < 0.5 ? 3 : 4;
 }
 
 function getTakenSeats(
@@ -59,19 +45,7 @@ function getTakenSeats(
   return new Set(seats.slice(0, takenCount));
 }
 
-function getSeatUpdates(
-  prev: FormData,
-  selectedSeat: number | null,
-  forTest: boolean
-) {
-  if (forTest && selectedSeat) {
-    return {
-      seat_number: selectedSeat,
-      prix_siege: PRIX_SIEGE,
-      prix_total: prev.prix_reservation + PRIX_SIEGE,
-    };
-  }
-
+function getSeatUpdates(selectedSeat: number | null) {
   return {
     seat_number: selectedSeat,
     prix_siege: 0,
@@ -103,15 +77,11 @@ export function Step3Seats({
     setLoading(true);
     setFetchError(null);
 
-    const reservees = getPlacesReservees(
+    const disponibles = getPlacesDisponibles(
       formData.campus_id,
       formData.niveau_id
     );
-    const disponibles = getPlacesDisponibles(
-      formData.campus_id,
-      formData.niveau_id,
-      reservees
-    );
+    const reservees = TOTAL_SEATS - disponibles;
 
     setPlacesReservees(reservees);
     setPlacesDisponibles(disponibles);
@@ -138,7 +108,7 @@ export function Step3Seats({
   const handleReserveTest = () => {
     setFormData((prev) => ({
       ...prev,
-      ...getSeatUpdates(prev, selectedSeat, true),
+      ...getSeatUpdates(selectedSeat),
       reservation_type: "test",
     }));
     nextStep();
@@ -147,7 +117,7 @@ export function Step3Seats({
   const handleReserveVisite = () => {
     setFormData((prev) => ({
       ...prev,
-      ...getSeatUpdates(prev, selectedSeat, false),
+      ...getSeatUpdates(selectedSeat),
       reservation_type: "visite",
     }));
     nextStep();
@@ -184,16 +154,11 @@ export function Step3Seats({
             </p>
           </div>
 
-          <div className="rounded-2xl bg-[#f0f4f8] px-4 py-3">
-            <p className="text-sm font-medium text-[#0a2342]">
-              Choisir un siège (test): +{PRIX_SIEGE} MAD
+          {selectedSeat && (
+            <p className="rounded-2xl bg-[#f0f4f8] px-4 py-3 text-sm font-semibold text-[#0a2342]">
+              ✓ Siège N°{selectedSeat} sélectionné
             </p>
-            {selectedSeat && (
-              <p className="mt-1 text-sm font-semibold text-[#0a2342]">
-                ✓ Siège N°{selectedSeat} sélectionné
-              </p>
-            )}
-          </div>
+          )}
 
           <div className="mx-auto w-full max-w-[400px]">
             <div className="mb-4 rounded-lg bg-[#0a2342] py-2 text-center text-xs font-bold tracking-widest text-white">
@@ -260,19 +225,11 @@ export function Step3Seats({
       <div className="mt-2 flex flex-col gap-3">
         <button
           type="button"
-          onClick={prevStep}
-          className="w-full rounded-2xl border-2 border-[#0a2342]/20 bg-white py-3.5 text-sm font-semibold text-[#0a2342] transition-colors hover:bg-[#f0f4f8]"
-        >
-          ← Retour
-        </button>
-
-        <button
-          type="button"
           onClick={handleReserveTest}
           disabled={loading || !!fetchError}
           className="w-full rounded-2xl bg-[#0a2342] py-3.5 text-sm font-semibold text-white transition-colors hover:bg-[#0a2342]/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Réserver test
+          Réserver un test d&apos;admission
         </button>
 
         <button
@@ -281,7 +238,15 @@ export function Step3Seats({
           disabled={loading || !!fetchError}
           className="w-full rounded-2xl border-2 border-[#0a2342] bg-white py-3.5 text-sm font-semibold text-[#0a2342] transition-colors hover:bg-[#0a2342]/5 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Réserver visite
+          Réserver juste une visite
+        </button>
+
+        <button
+          type="button"
+          onClick={prevStep}
+          className="w-full rounded-2xl border-2 border-[#0a2342]/20 bg-white py-3.5 text-sm font-semibold text-[#0a2342] transition-colors hover:bg-[#f0f4f8]"
+        >
+          ← Retour
         </button>
       </div>
     </div>
