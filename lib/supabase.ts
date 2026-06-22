@@ -71,6 +71,9 @@ export async function createRegistration(formData: {
   niveau_id: string
   classe_id?: string
   seat_number?: number
+  reservation_type?: string
+  test_date?: string
+  test_time?: string
   prix_total: number
 }) {
   const { data, error } = await supabase
@@ -78,6 +81,9 @@ export async function createRegistration(formData: {
     .insert([{
       ...formData,
       classe_id: formData.classe_id || null,
+      reservation_type: formData.reservation_type || null,
+      test_date: formData.test_date || null,
+      test_time: formData.test_time || null,
       status: formData.prix_total > 0 ? 'incomplete' : 'complete',
       payment_status: formData.prix_total > 0 ? 'pending' : 'visite',
     }])

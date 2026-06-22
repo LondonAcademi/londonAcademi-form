@@ -1,22 +1,43 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle2, Loader2, Lock } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Calendar, CheckCircle2, Clock, Loader2, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PRIX_TEST_ADMISSION, type FormStepProps } from "@/types";
+import {
+  PRIX_TEST_ADMISSION,
+  TEST_TIME_SLOTS,
+  type FormStepProps,
+} from "@/types";
 
 const inputClassName =
   "w-full rounded-2xl border border-transparent bg-[#f0f4f8] px-4 py-3 text-sm text-[#0a2342] outline-none transition-colors placeholder:text-gray-400 focus:border-[#0a2342]/30 focus:bg-white";
 
 const labelClassName = "mb-1.5 block text-sm font-medium text-[#0a2342]";
 
-export function Step5Payment({ formData, prevStep }: FormStepProps) {
+function getMinDate() {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatTestDate(dateValue: string) {
+  if (!dateValue) return "";
+  const [year, month, day] = dateValue.split("-");
+  return `${day}/${month}/${year}`;
+}
+
+export function Step5Payment({ formData, setFormData, prevStep }: FormStepProps) {
   const [cardHolder, setCardHolder] = useState(
     `${formData.prenom} ${formData.nom}`.trim()
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
+
+  const minDate = useMemo(() => getMinDate(), []);
 
   const prixTotal =
     formData.reservation_type === "test"
@@ -24,8 +45,14 @@ export function Step5Payment({ formData, prevStep }: FormStepProps) {
       : formData.prix_total || formData.prix_reservation;
 
   const handlePayment = async () => {
+    if (!formData.test_date || !formData.test_time) {
+      setScheduleError("Veuillez choisir une date et une heure pour le test.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    setScheduleError(null);
 
     try {
       const paymentRes = await fetch("/api/payment", {
@@ -37,7 +64,7 @@ export function Step5Payment({ formData, prevStep }: FormStepProps) {
           nom: formData.nom,
           prenom: formData.prenom,
           telephone: formData.telephone,
-          note: `Inscription London Academy - ${formData.niveau_nom || "Test"}`,
+          note: `Test d'admission London Academy - ${formData.test_date} ${formData.test_time} - ${formData.niveau_nom || "Test"}`,
         }),
       });
 
@@ -67,6 +94,9 @@ export function Step5Payment({ formData, prevStep }: FormStepProps) {
           niveau_id: formData.niveau_id,
           classe_id: formData.classe_id,
           seat_number: formData.seat_number ?? undefined,
+          reservation_type: "test",
+          test_date: formData.test_date,
+          test_time: formData.test_time,
           prix_total: prixTotal,
           payment_id: paymentData.token || paymentData.id || null,
         }),
@@ -123,6 +153,12 @@ export function Step5Payment({ formData, prevStep }: FormStepProps) {
             </p>
           )}
           <p className="mt-2 text-gray-600">Test d&apos;admission</p>
+          {formData.test_date && formData.test_time && (
+            <p className="mt-1 text-gray-600">
+              Rendez-vous: {formatTestDate(formData.test_date)} à{" "}
+              {formData.test_time}
+            </p>
+          )}
           <p className="mt-2 font-bold text-[#0a2342]">Total payé: {prixTotal} MAD</p>
         </div>
 
@@ -174,6 +210,67 @@ export function Step5Payment({ formData, prevStep }: FormStepProps) {
         </div>
       </div>
 
+      {/* Test appointment */}
+      <div className="rounded-2xl border border-gray-100 bg-white p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-[#0a2342]" strokeWidth={2} />
+          <h3 className="text-sm font-semibold text-[#0a2342]">
+            Date et heure du test d&apos;admission
+          </h3>
+        </div>
+
+        <div className="mb-4">
+          <label htmlFor="testDate" className={labelClassName}>
+            Date <span className="text-red-500">*</span>
+          </label>
+          <input
+            id="testDate"
+            type="date"
+            min={minDate}
+            value={formData.test_date}
+            onChange={(e) => {
+              setScheduleError(null);
+              setFormData((prev) => ({ ...prev, test_date: e.target.value }));
+            }}
+            className={inputClassName}
+          />
+        </div>
+
+        <div>
+          <p className={labelClassName}>
+            Heure <span className="text-red-500">*</span>
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {TEST_TIME_SLOTS.map((slot) => {
+              const isSelected = formData.test_time === slot;
+              return (
+                <button
+                  key={slot}
+                  type="button"
+                  onClick={() => {
+                    setScheduleError(null);
+                    setFormData((prev) => ({ ...prev, test_time: slot }));
+                  }}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 rounded-2xl border py-2.5 text-sm font-medium transition-colors",
+                    isSelected
+                      ? "border-[#0a2342] bg-[#0a2342] text-white"
+                      : "border-transparent bg-[#f0f4f8] text-[#0a2342] hover:bg-[#e4ebf3]"
+                  )}
+                >
+                  <Clock className="h-3.5 w-3.5" strokeWidth={2} />
+                  {slot}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {scheduleError && (
+          <p className="mt-3 text-sm text-red-500">{scheduleError}</p>
+        )}
+      </div>
+
       {/* Payment form (display only) */}
       <div>
         <label htmlFor="cardHolder" className={labelClassName}>
@@ -214,7 +311,7 @@ export function Step5Payment({ formData, prevStep }: FormStepProps) {
       <button
         type="button"
         onClick={handlePayment}
-        disabled={loading}
+        disabled={loading || !formData.test_date || !formData.test_time}
         className={cn(
           "flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0a2342] py-4 text-base font-semibold text-white transition-colors hover:bg-[#0a2342]/90 disabled:cursor-not-allowed disabled:opacity-50"
         )}

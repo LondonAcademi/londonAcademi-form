@@ -18,6 +18,9 @@ export async function POST(req: Request) {
       niveau_id: body.niveau_id,
       classe_id: body.classe_id,
       seat_number: body.seat_number,
+      reservation_type: body.reservation_type,
+      test_date: body.test_date,
+      test_time: body.test_time,
       prix_total: body.prix_total ?? 0,
     });
 

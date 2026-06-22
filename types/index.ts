@@ -50,6 +50,8 @@ export type FormData = {
   prix_reservation: number
   prix_siege: number
   prix_total: number
+  test_date: string
+  test_time: string
 }
 
 export type FormStepProps = {
@@ -62,6 +64,15 @@ export type FormStepProps = {
 
 export const PRIX_SIEGE = 200
 export const PRIX_TEST_ADMISSION = 500
+
+export const TEST_TIME_SLOTS = [
+  "09:00",
+  "10:00",
+  "11:00",
+  "14:00",
+  "15:00",
+  "16:00",
+] as const
 
 export const INITIAL_FORM_DATA: FormData = {
   campus_id: '',
@@ -84,4 +95,6 @@ export const INITIAL_FORM_DATA: FormData = {
   prix_reservation: 0,
   prix_siege: 0,
   prix_total: 0,
+  test_date: '',
+  test_time: '',
 }

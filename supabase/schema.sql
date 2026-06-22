@@ -83,6 +83,9 @@ create table registrations (
 
   -- Step 3
   seat_number integer,  -- null = pas de siège choisi
+  reservation_type text, -- test | visite
+  test_date date,
+  test_time text,
 
   -- Step 4 & 5
   prix_total decimal(10,2),
@@ -114,3 +117,8 @@ begin
   where id = classe_uuid;
 end;
 $$ language plpgsql security definer;
+
+-- Migration (bases existantes)
+-- alter table registrations add column if not exists reservation_type text;
+-- alter table registrations add column if not exists test_date date;
+-- alter table registrations add column if not exists test_time text;
