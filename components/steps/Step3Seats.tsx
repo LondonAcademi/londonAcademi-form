@@ -52,6 +52,14 @@ function getSeatUpdates(selectedSeat: number | null) {
   };
 }
 
+function pickRandomAvailableSeat(takenSeats: Set<number>): number | null {
+  const available = Array.from({ length: TOTAL_SEATS }, (_, i) => i + 1).filter(
+    (seat) => !takenSeats.has(seat)
+  );
+  if (available.length === 0) return null;
+  return available[Math.floor(Math.random() * available.length)];
+}
+
 export function Step3Seats({
   formData,
   setFormData,
@@ -65,7 +73,7 @@ export function Step3Seats({
   const [selectedSeat, setSelectedSeat] = useState<number | null>(
     formData.seat_number
   );
-  const [continuedWithoutSeat, setContinuedWithoutSeat] = useState(false);
+  const [autoSeatError, setAutoSeatError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!formData.niveau_id || !formData.campus_id) {
@@ -100,20 +108,30 @@ export function Step3Seats({
 
   const handleSeatClick = (seatNumber: number) => {
     if (takenSeats.has(seatNumber)) return;
-    setContinuedWithoutSeat(false);
+    setAutoSeatError(null);
     setSelectedSeat((current) =>
       current === seatNumber ? null : seatNumber
     );
   };
 
   const handleContinueWithoutSeat = () => {
-    setSelectedSeat(null);
-    setContinuedWithoutSeat(true);
+    const randomSeat = pickRandomAvailableSeat(takenSeats);
+    if (randomSeat === null) {
+      setAutoSeatError("Aucun siège disponible pour le moment.");
+      return;
+    }
+
+    setAutoSeatError(null);
+    setSelectedSeat(randomSeat);
     setFormData((prev) => ({
       ...prev,
-      seat_number: null,
+      seat_number: randomSeat,
       prix_siege: 0,
+      reservation_type: "test",
+      prix_reservation: PRIX_TEST_ADMISSION,
+      prix_total: PRIX_TEST_ADMISSION,
     }));
+    nextStep();
   };
 
   const handleReserveTest = () => {
@@ -175,9 +193,9 @@ export function Step3Seats({
             </p>
           )}
 
-          {continuedWithoutSeat && !selectedSeat && (
-            <p className="rounded-2xl border border-[#0a2342]/20 bg-[#0a2342]/5 px-4 py-3 text-center text-sm font-medium text-[#0a2342]">
-              ✓ Aucun siège sélectionné — choisissez une option ci-dessous
+          {autoSeatError && (
+            <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
+              {autoSeatError}
             </p>
           )}
 
@@ -236,7 +254,8 @@ export function Step3Seats({
           <button
             type="button"
             onClick={handleContinueWithoutSeat}
-            className="mx-auto mt-2 block text-sm text-gray-500 underline transition-colors hover:text-[#0a2342]"
+            disabled={loading || !!fetchError}
+            className="mx-auto mt-2 block text-sm text-gray-500 underline transition-colors hover:text-[#0a2342] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Continuer sans choisir de siège →
           </button>
