@@ -5,13 +5,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Check, Loader2 } from "lucide-react";
-import {
-  getClassesByNiveauAndCampus,
-  getNiveaux,
-  getPlacesDisponibles,
-} from "@/lib/supabase";
+import { getNiveaux } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
-import type { Classe, FormStepProps, Niveau } from "@/types";
+import type { FormStepProps, Niveau } from "@/types";
 
 const NIVEAUX_DISPLAY = [
   { emoji: "🧸", nom: "Maternel" },
@@ -34,7 +30,6 @@ function resolveNiveaux(supabaseNiveaux: Niveau[]): Niveau[] {
 
 const step2Schema = z.object({
   niveau_id: z.string().min(1, "Veuillez sélectionner un niveau"),
-  classe_id: z.string().min(1, "Veuillez sélectionner une classe"),
   child_age: z
     .number({ message: "Âge requis" })
     .refine((value) => !Number.isNaN(value), { message: "Âge requis" })
@@ -60,11 +55,7 @@ export function Step2Level({
   prevStep,
 }: FormStepProps) {
   const [niveaux, setNiveaux] = useState<Niveau[]>([]);
-  const [classes, setClasses] = useState<Classe[]>([]);
-  const [placesMap, setPlacesMap] = useState<Record<string, number>>({});
   const [loadingNiveaux, setLoadingNiveaux] = useState(true);
-  const [loadingClasses, setLoadingClasses] = useState(false);
-  const [classesError, setClassesError] = useState<string | null>(null);
 
   const {
     register,
@@ -76,7 +67,6 @@ export function Step2Level({
     resolver: zodResolver(step2Schema),
     defaultValues: {
       niveau_id: formData.niveau_id,
-      classe_id: formData.classe_id,
       child_age: formData.child_age ?? undefined,
       current_school: formData.current_school,
       additional_info: formData.additional_info,
@@ -84,7 +74,6 @@ export function Step2Level({
   });
 
   const selectedNiveauId = watch("niveau_id");
-  const selectedClasseId = watch("classe_id");
 
   useEffect(() => {
     let mounted = true;
@@ -114,85 +103,20 @@ export function Step2Level({
     };
   }, []);
 
-  useEffect(() => {
-    if (!selectedNiveauId || !formData.campus_id) {
-      setClasses([]);
-      setPlacesMap({});
-      return;
-    }
-
-    let mounted = true;
-
-    async function loadClasses() {
-      try {
-        setLoadingClasses(true);
-        setClassesError(null);
-        setClasses([]);
-        setPlacesMap({});
-
-        const data = await getClassesByNiveauAndCampus(
-          selectedNiveauId,
-          formData.campus_id
-        );
-
-        if (!mounted) return;
-
-        const fetchedClasses = data as Classe[];
-        setClasses(fetchedClasses);
-
-        const placesEntries = await Promise.all(
-          fetchedClasses.map(async (classe) => {
-            try {
-              const places = await getPlacesDisponibles(classe.id);
-              return [classe.id, places] as const;
-            } catch {
-              return [classe.id, 0] as const;
-            }
-          })
-        );
-
-        if (mounted) {
-          setPlacesMap(Object.fromEntries(placesEntries));
-        }
-      } catch {
-        if (mounted) {
-          setClassesError("Impossible de charger les classes. Veuillez réessayer.");
-          setClasses([]);
-        }
-      } finally {
-        if (mounted) {
-          setLoadingClasses(false);
-        }
-      }
-    }
-
-    loadClasses();
-
-    return () => {
-      mounted = false;
-    };
-  }, [selectedNiveauId, formData.campus_id]);
-
   const handleNiveauSelect = (niveauId: string) => {
     setValue("niveau_id", niveauId, { shouldValidate: true });
-    setValue("classe_id", "", { shouldValidate: false });
-  };
-
-  const handleClasseSelect = (classeId: string) => {
-    setValue("classe_id", classeId, { shouldValidate: true });
   };
 
   const onSubmit = (data: Step2FormValues) => {
     const niveau = niveaux.find((n) => n.id === data.niveau_id);
-    const classe = classes.find((c) => c.id === data.classe_id);
 
     setFormData({
       ...formData,
       niveau_id: data.niveau_id,
       niveau_nom: niveau?.nom ?? "",
-      classe_id: data.classe_id,
-      classe_nom: classe?.nom ?? "",
-      prix_reservation: classe?.prix_reservation ?? 0,
+      classe_id: "",
+      classe_nom: "",
+      prix_reservation: 0,
       child_age: data.child_age,
       current_school: data.current_school,
       additional_info: data.additional_info || "",
@@ -260,76 +184,6 @@ export function Step2Level({
         )}
       </div>
 
-      {/* Part B — Classe selection */}
-      {selectedNiveauId && (
-        <div>
-          <span className="mb-3 block text-sm font-medium text-[#0a2342]">
-            Classe <span className="text-red-500">*</span>
-          </span>
-
-          {loadingClasses ? (
-            <div className="flex items-center justify-center gap-2 rounded-2xl bg-[#f0f4f8] py-10 text-sm text-gray-500">
-              <Loader2 className="h-5 w-5 animate-spin text-[#0a2342]" />
-              Chargement des classes...
-            </div>
-          ) : classesError ? (
-            <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">
-              {classesError}
-            </p>
-          ) : classes.length === 0 ? (
-            <p className="rounded-2xl bg-[#f0f4f8] px-4 py-6 text-center text-sm text-gray-500">
-              Aucune classe disponible pour ce niveau et ce campus.
-            </p>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {classes.map((classe) => {
-                const isSelected = selectedClasseId === classe.id;
-                const places = placesMap[classe.id] ?? 0;
-                const isUrgent = places <= 3;
-
-                return (
-                  <button
-                    key={classe.id}
-                    type="button"
-                    onClick={() => handleClasseSelect(classe.id)}
-                    className={cn(
-                      "relative flex flex-col items-start rounded-2xl border-2 p-4 text-left transition-all",
-                      isSelected
-                        ? "border-[#0a2342] bg-[#0a2342]/5"
-                        : "border-transparent bg-[#f0f4f8] hover:border-[#0a2342]/20"
-                    )}
-                  >
-                    {isSelected && (
-                      <div className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[#0a2342] text-white">
-                        <Check className="h-3 w-3" strokeWidth={3} />
-                      </div>
-                    )}
-                    <p className="font-semibold text-[#0a2342]">{classe.nom}</p>
-                    <p className="mt-1 text-sm font-medium text-[#0a2342]/80">
-                      {classe.prix_reservation} MAD
-                    </p>
-                    <p
-                      className={cn(
-                        "mt-2 text-xs font-medium",
-                        isUrgent ? "text-red-600" : "text-green-600"
-                      )}
-                    >
-                      {isUrgent
-                        ? `🔴 Plus que ${places} place${places > 1 ? "s" : ""}!`
-                        : `🟢 ${places} place${places > 1 ? "s" : ""} disponible${places > 1 ? "s" : ""}`}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {errors.classe_id && (
-            <p className={errorClassName}>{errors.classe_id.message}</p>
-          )}
-        </div>
-      )}
-
       {/* Part C — Child info */}
       <div>
         <label htmlFor="child_age" className={labelClassName}>
@@ -388,8 +242,7 @@ export function Step2Level({
         </button>
         <button
           type="submit"
-          disabled={loadingClasses}
-          className="flex-1 rounded-2xl bg-[#0a2342] py-3.5 text-sm font-semibold text-white transition-colors hover:bg-[#0a2342]/90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex-1 rounded-2xl bg-[#0a2342] py-3.5 text-sm font-semibold text-white transition-colors hover:bg-[#0a2342]/90"
         >
           Suivant →
         </button>
