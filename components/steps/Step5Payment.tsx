@@ -36,7 +36,7 @@ export function Step5Payment({ formData, prevStep }: FormStepProps) {
           nom: formData.nom,
           prenom: formData.prenom,
           telephone: formData.telephone,
-          note: `Inscription London Academy - ${formData.classe_nom}`,
+          note: `Inscription London Academy - ${formData.niveau_nom || "Test"}`,
         }),
       });
 
@@ -144,7 +144,7 @@ export function Step5Payment({ formData, prevStep }: FormStepProps) {
         </div>
         <h2 className="text-xl font-semibold text-[#0a2342]">Paiement</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Finalisez votre inscription — Étape 5 sur 5
+          Finalisez votre inscription — Étape 4 sur 4
         </p>
       </div>
 

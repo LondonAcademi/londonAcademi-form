@@ -2,9 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Armchair, Check, Loader2 } from "lucide-react";
-import { getPlacesDisponibles, supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
-import { PRIX_SIEGE, type FormStepProps } from "@/types";
+import { PRIX_SIEGE, type FormData, type FormStepProps } from "@/types";
 
 const TOTAL_SEATS = 20;
 
@@ -19,9 +18,36 @@ function createSeededRandom(seed: string) {
   };
 }
 
-function getTakenSeats(classeId: string, placesReservees: number): Set<number> {
+function getSeatSeed(campusId: string, niveauId: string) {
   const dateStr = new Date().toISOString().slice(0, 10);
-  const random = createSeededRandom(`${classeId}-${dateStr}`);
+  return `${campusId}-${niveauId}-${dateStr}`;
+}
+
+function getPlacesReservees(campusId: string, niveauId: string): number {
+  const random = createSeededRandom(getSeatSeed(campusId, niveauId));
+  return Math.floor(random() * 10) + 8;
+}
+
+function getPlacesDisponibles(
+  campusId: string,
+  niveauId: string,
+  placesReservees: number
+): number {
+  const realAvailable = TOTAL_SEATS - placesReservees;
+  if (realAvailable <= 0) return 0;
+
+  const random = createSeededRandom(`${getSeatSeed(campusId, niveauId)}-dispo`);
+  const min = Math.min(2, realAvailable);
+  const max = realAvailable;
+  return Math.floor(random() * (max - min + 1)) + min;
+}
+
+function getTakenSeats(
+  campusId: string,
+  niveauId: string,
+  placesReservees: number
+): Set<number> {
+  const random = createSeededRandom(getSeatSeed(campusId, niveauId));
   const seats = Array.from({ length: TOTAL_SEATS }, (_, i) => i + 1);
 
   for (let i = seats.length - 1; i > 0; i--) {
@@ -31,6 +57,26 @@ function getTakenSeats(classeId: string, placesReservees: number): Set<number> {
 
   const takenCount = Math.min(Math.max(0, placesReservees), TOTAL_SEATS);
   return new Set(seats.slice(0, takenCount));
+}
+
+function getSeatUpdates(
+  prev: FormData,
+  selectedSeat: number | null,
+  forTest: boolean
+) {
+  if (forTest && selectedSeat) {
+    return {
+      seat_number: selectedSeat,
+      prix_siege: PRIX_SIEGE,
+      prix_total: prev.prix_reservation + PRIX_SIEGE,
+    };
+  }
+
+  return {
+    seat_number: selectedSeat,
+    prix_siege: 0,
+    prix_total: 0,
+  };
 }
 
 export function Step3Seats({
@@ -48,54 +94,38 @@ export function Step3Seats({
   );
 
   useEffect(() => {
-    if (!formData.classe_id) {
+    if (!formData.niveau_id || !formData.campus_id) {
       setLoading(false);
-      setFetchError("Aucune classe sélectionnée.");
+      setFetchError("Veuillez compléter l'étape précédente (campus et niveau).");
       return;
     }
 
-    let mounted = true;
+    setLoading(true);
+    setFetchError(null);
 
-    async function loadSeatData() {
-      try {
-        setLoading(true);
-        setFetchError(null);
+    const reservees = getPlacesReservees(
+      formData.campus_id,
+      formData.niveau_id
+    );
+    const disponibles = getPlacesDisponibles(
+      formData.campus_id,
+      formData.niveau_id,
+      reservees
+    );
 
-        const [{ data, error }, disponibles] = await Promise.all([
-          supabase
-            .from("classes")
-            .select("places_reservees")
-            .eq("id", formData.classe_id)
-            .single(),
-          getPlacesDisponibles(formData.classe_id),
-        ]);
-
-        if (error) throw error;
-        if (!mounted) return;
-
-        setPlacesReservees(data.places_reservees ?? 0);
-        setPlacesDisponibles(disponibles);
-      } catch {
-        if (mounted) {
-          setFetchError("Impossible de charger le plan de salle.");
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadSeatData();
-
-    return () => {
-      mounted = false;
-    };
-  }, [formData.classe_id]);
+    setPlacesReservees(reservees);
+    setPlacesDisponibles(disponibles);
+    setLoading(false);
+  }, [formData.campus_id, formData.niveau_id]);
 
   const takenSeats = useMemo(
-    () => getTakenSeats(formData.classe_id, placesReservees),
-    [formData.classe_id, placesReservees]
+    () =>
+      getTakenSeats(
+        formData.campus_id,
+        formData.niveau_id,
+        placesReservees
+      ),
+    [formData.campus_id, formData.niveau_id, placesReservees]
   );
 
   const handleSeatClick = (seatNumber: number) => {
@@ -105,24 +135,20 @@ export function Step3Seats({
     );
   };
 
-  const handleSkip = () => {
+  const handleReserveTest = () => {
     setFormData((prev) => ({
       ...prev,
-      seat_number: null,
-      prix_siege: 0,
-      prix_total: prev.prix_reservation,
+      ...getSeatUpdates(prev, selectedSeat, true),
+      reservation_type: "test",
     }));
     nextStep();
   };
 
-  const handleConfirm = () => {
-    if (!selectedSeat) return;
-
+  const handleReserveVisite = () => {
     setFormData((prev) => ({
       ...prev,
-      seat_number: selectedSeat,
-      prix_siege: PRIX_SIEGE,
-      prix_total: prev.prix_reservation + PRIX_SIEGE,
+      ...getSeatUpdates(prev, selectedSeat, false),
+      reservation_type: "visite",
     }));
     nextStep();
   };
@@ -134,7 +160,8 @@ export function Step3Seats({
           Choisissez votre siège
         </h2>
         <p className="mt-1 text-sm text-gray-500">
-          Siège optionnel — Étape 3 sur 5
+          Siège optionnel — Étape 3 sur 4
+          {formData.niveau_nom ? ` · ${formData.niveau_nom}` : ""}
         </p>
       </div>
 
@@ -149,7 +176,6 @@ export function Step3Seats({
         </p>
       ) : (
         <>
-          {/* Scarcity banner */}
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-center">
             <p className="text-sm font-bold text-amber-800">
               ⚠️ Plus que {placesDisponibles} place
@@ -158,19 +184,17 @@ export function Step3Seats({
             </p>
           </div>
 
-          {/* Pricing info */}
           <div className="rounded-2xl bg-[#f0f4f8] px-4 py-3">
             <p className="text-sm font-medium text-[#0a2342]">
-              Choisir un siège: +{PRIX_SIEGE} MAD
+              Choisir un siège (test): +{PRIX_SIEGE} MAD
             </p>
             {selectedSeat && (
               <p className="mt-1 text-sm font-semibold text-[#0a2342]">
-                ✓ Siège N°{selectedSeat} sélectionné — +{PRIX_SIEGE} MAD ajouté
+                ✓ Siège N°{selectedSeat} sélectionné
               </p>
             )}
           </div>
 
-          {/* Classroom */}
           <div className="mx-auto w-full max-w-[400px]">
             <div className="mb-4 rounded-lg bg-[#0a2342] py-2 text-center text-xs font-bold tracking-widest text-white">
               TABLEAU
@@ -223,10 +247,9 @@ export function Step3Seats({
             </div>
           </div>
 
-          {/* Skip option */}
           <button
             type="button"
-            onClick={handleSkip}
+            onClick={() => setSelectedSeat(null)}
             className="mx-auto mt-2 text-sm text-gray-500 underline transition-colors hover:text-[#0a2342]"
           >
             Continuer sans choisir de siège →
@@ -234,22 +257,31 @@ export function Step3Seats({
         </>
       )}
 
-      {/* Navigation */}
-      <div className="mt-2 flex gap-3">
+      <div className="mt-2 flex flex-col gap-3">
         <button
           type="button"
           onClick={prevStep}
-          className="flex-1 rounded-2xl border-2 border-[#0a2342]/20 bg-white py-3.5 text-sm font-semibold text-[#0a2342] transition-colors hover:bg-[#f0f4f8]"
+          className="w-full rounded-2xl border-2 border-[#0a2342]/20 bg-white py-3.5 text-sm font-semibold text-[#0a2342] transition-colors hover:bg-[#f0f4f8]"
         >
           ← Retour
         </button>
+
         <button
           type="button"
-          onClick={handleConfirm}
-          disabled={!selectedSeat || loading}
-          className="flex-1 rounded-2xl bg-[#0a2342] py-3.5 text-sm font-semibold text-white transition-colors hover:bg-[#0a2342]/90 disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={handleReserveTest}
+          disabled={loading || !!fetchError}
+          className="w-full rounded-2xl bg-[#0a2342] py-3.5 text-sm font-semibold text-white transition-colors hover:bg-[#0a2342]/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Confirmer mon siège →
+          Réserver test
+        </button>
+
+        <button
+          type="button"
+          onClick={handleReserveVisite}
+          disabled={loading || !!fetchError}
+          className="w-full rounded-2xl border-2 border-[#0a2342] bg-white py-3.5 text-sm font-semibold text-[#0a2342] transition-colors hover:bg-[#0a2342]/5 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Réserver visite
         </button>
       </div>
     </div>

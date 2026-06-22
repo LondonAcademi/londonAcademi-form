@@ -118,7 +118,7 @@ export function Step1Personal({
           Informations personnelles
         </h2>
         <p className="mt-1 text-sm text-gray-500">
-          Personal Information — Étape 1 sur 5
+          Personal Information — Étape 1 sur 4
         </p>
       </div>
 

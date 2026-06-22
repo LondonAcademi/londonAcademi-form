@@ -36,7 +36,6 @@ const step2Schema = z.object({
     .min(3, "Minimum 3 ans")
     .max(25, "Maximum 25 ans"),
   current_school: z.string().min(2, "Minimum 2 caractères"),
-  additional_info: z.string().optional(),
 });
 
 type Step2FormValues = z.infer<typeof step2Schema>;
@@ -69,7 +68,6 @@ export function Step2Level({
       niveau_id: formData.niveau_id,
       child_age: formData.child_age ?? undefined,
       current_school: formData.current_school,
-      additional_info: formData.additional_info,
     },
   });
 
@@ -119,7 +117,7 @@ export function Step2Level({
       prix_reservation: 0,
       child_age: data.child_age,
       current_school: data.current_school,
-      additional_info: data.additional_info || "",
+      additional_info: "",
     });
 
     nextStep();
@@ -133,7 +131,7 @@ export function Step2Level({
       <div className="mb-2">
         <h2 className="text-xl font-semibold text-[#0a2342]">Niveau & Classe</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Choisissez le niveau scolaire — Étape 2 sur 5
+          Choisissez le niveau scolaire — Étape 2 sur 4
         </p>
       </div>
 
@@ -217,18 +215,6 @@ export function Step2Level({
         {errors.current_school && (
           <p className={errorClassName}>{errors.current_school.message}</p>
         )}
-      </div>
-
-      <div>
-        <label htmlFor="additional_info" className={labelClassName}>
-          Informations complémentaires (Additional Information)
-        </label>
-        <textarea
-          id="additional_info"
-          rows={4}
-          className={cn(inputClassName, "resize-none")}
-          {...register("additional_info")}
-        />
       </div>
 
       {/* Navigation */}

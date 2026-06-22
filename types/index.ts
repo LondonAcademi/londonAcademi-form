@@ -43,6 +43,8 @@ export type FormData = {
 
   // Step 3
   seat_number: number | null
+  reservation_type: 'test' | 'visite' | ''
+  current_school_price: number | null
 
   // Step 4 & 5
   prix_reservation: number
@@ -76,6 +78,8 @@ export const INITIAL_FORM_DATA: FormData = {
   classe_id: '',
   classe_nom: '',
   seat_number: null,
+  reservation_type: '',
+  current_school_price: null,
   prix_reservation: 0,
   prix_siege: 0,
   prix_total: 0,

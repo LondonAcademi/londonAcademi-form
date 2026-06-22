@@ -4,26 +4,35 @@ import {
   User,
   GraduationCap,
   Armchair,
-  FileText,
   CreditCard,
+  CalendarDays,
   Check,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { FormData } from "@/types";
 
-const STEPS: { icon: LucideIcon; label: string }[] = [
+const BASE_STEPS: { icon: LucideIcon; label: string }[] = [
   { icon: User, label: "Informations" },
   { icon: GraduationCap, label: "Niveau" },
   { icon: Armchair, label: "Siège" },
-  { icon: FileText, label: "Résumé" },
-  { icon: CreditCard, label: "Paiement" },
 ];
 
 type StepIndicatorProps = {
   currentStep: number;
+  reservationType?: FormData["reservation_type"];
 };
 
-export function StepIndicator({ currentStep }: StepIndicatorProps) {
+export function StepIndicator({
+  currentStep,
+  reservationType = "",
+}: StepIndicatorProps) {
+  const lastStep =
+    reservationType === "visite"
+      ? { icon: CalendarDays, label: "Visite" }
+      : { icon: CreditCard, label: "Paiement" };
+
+  const STEPS = [...BASE_STEPS, lastStep];
   return (
     <nav aria-label="Étapes du formulaire" className="w-full px-1">
       <ol className="flex items-start">

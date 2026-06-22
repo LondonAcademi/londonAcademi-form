@@ -69,13 +69,18 @@ export async function createRegistration(formData: {
   current_school?: string
   additional_info?: string
   niveau_id: string
-  classe_id: string
+  classe_id?: string
   seat_number?: number
   prix_total: number
 }) {
   const { data, error } = await supabase
     .from('registrations')
-    .insert([{ ...formData, status: 'incomplete', payment_status: 'pending' }])
+    .insert([{
+      ...formData,
+      classe_id: formData.classe_id || null,
+      status: formData.prix_total > 0 ? 'incomplete' : 'complete',
+      payment_status: formData.prix_total > 0 ? 'pending' : 'visite',
+    }])
     .select()
     .single()
   if (error) throw error

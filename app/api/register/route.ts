@@ -18,10 +18,12 @@ export async function POST(req: Request) {
       niveau_id: body.niveau_id,
       classe_id: body.classe_id,
       seat_number: body.seat_number,
-      prix_total: body.prix_total,
+      prix_total: body.prix_total ?? 0,
     });
 
-    await incrementPlaces(body.classe_id);
+    if (body.classe_id) {
+      await incrementPlaces(body.classe_id);
+    }
 
     return NextResponse.json(registration);
   } catch (error) {
