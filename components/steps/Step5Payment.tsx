@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CheckCircle2, Loader2, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { FormStepProps } from "@/types";
+import { PRIX_TEST_ADMISSION, type FormStepProps } from "@/types";
 
 const inputClassName =
   "w-full rounded-2xl border border-transparent bg-[#f0f4f8] px-4 py-3 text-sm text-[#0a2342] outline-none transition-colors placeholder:text-gray-400 focus:border-[#0a2342]/30 focus:bg-white";
@@ -19,7 +19,9 @@ export function Step5Payment({ formData, prevStep }: FormStepProps) {
   const [success, setSuccess] = useState(false);
 
   const prixTotal =
-    formData.prix_total || formData.prix_reservation;
+    formData.reservation_type === "test"
+      ? formData.prix_total || PRIX_TEST_ADMISSION
+      : formData.prix_total || formData.prix_reservation;
 
   const handlePayment = async () => {
     setLoading(true);
@@ -120,7 +122,8 @@ export function Step5Payment({ formData, prevStep }: FormStepProps) {
               Siège N°{formData.seat_number}
             </p>
           )}
-          <p className="mt-2 font-bold text-[#0a2342]">Total: {prixTotal} MAD</p>
+          <p className="mt-2 text-gray-600">Test d&apos;admission</p>
+          <p className="mt-2 font-bold text-[#0a2342]">Total payé: {prixTotal} MAD</p>
         </div>
 
         <button
@@ -150,7 +153,8 @@ export function Step5Payment({ formData, prevStep }: FormStepProps) {
       {/* Order summary */}
       <div className="rounded-2xl border border-gray-100 bg-[#f0f4f8] p-4 text-sm">
         <p className="font-medium text-[#0a2342]">
-          Inscription: {formData.classe_nom} — {formData.niveau_nom}
+          {formData.niveau_nom || "Inscription"}
+          {formData.classe_nom ? ` — ${formData.classe_nom}` : ""}
         </p>
         <p className="mt-1 text-gray-600">Campus: {formData.campus_nom}</p>
         {formData.seat_number != null && (
@@ -158,9 +162,16 @@ export function Step5Payment({ formData, prevStep }: FormStepProps) {
             Siège N°{formData.seat_number} sélectionné
           </p>
         )}
-        <p className="mt-2 font-bold text-[#0a2342]">
-          Total: {prixTotal} MAD
-        </p>
+        <div className="mt-3 space-y-1 border-t border-gray-200 pt-3">
+          <div className="flex justify-between text-gray-600">
+            <span>Test d&apos;admission</span>
+            <span>{prixTotal} MAD</span>
+          </div>
+          <p className="flex justify-between font-bold text-[#0a2342]">
+            <span>Total à payer</span>
+            <span>{prixTotal} MAD</span>
+          </p>
+        </div>
       </div>
 
       {/* Payment form (display only) */}

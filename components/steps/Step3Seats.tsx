@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Armchair, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { FormStepProps } from "@/types";
+import { PRIX_TEST_ADMISSION, type FormStepProps } from "@/types";
 
 const TOTAL_SEATS = 20;
 
@@ -49,7 +49,6 @@ function getSeatUpdates(selectedSeat: number | null) {
   return {
     seat_number: selectedSeat,
     prix_siege: 0,
-    prix_total: 0,
   };
 }
 
@@ -66,6 +65,7 @@ export function Step3Seats({
   const [selectedSeat, setSelectedSeat] = useState<number | null>(
     formData.seat_number
   );
+  const [continuedWithoutSeat, setContinuedWithoutSeat] = useState(false);
 
   useEffect(() => {
     if (!formData.niveau_id || !formData.campus_id) {
@@ -100,9 +100,20 @@ export function Step3Seats({
 
   const handleSeatClick = (seatNumber: number) => {
     if (takenSeats.has(seatNumber)) return;
+    setContinuedWithoutSeat(false);
     setSelectedSeat((current) =>
       current === seatNumber ? null : seatNumber
     );
+  };
+
+  const handleContinueWithoutSeat = () => {
+    setSelectedSeat(null);
+    setContinuedWithoutSeat(true);
+    setFormData((prev) => ({
+      ...prev,
+      seat_number: null,
+      prix_siege: 0,
+    }));
   };
 
   const handleReserveTest = () => {
@@ -110,6 +121,8 @@ export function Step3Seats({
       ...prev,
       ...getSeatUpdates(selectedSeat),
       reservation_type: "test",
+      prix_reservation: PRIX_TEST_ADMISSION,
+      prix_total: PRIX_TEST_ADMISSION,
     }));
     nextStep();
   };
@@ -119,6 +132,8 @@ export function Step3Seats({
       ...prev,
       ...getSeatUpdates(selectedSeat),
       reservation_type: "visite",
+      prix_reservation: 0,
+      prix_total: 0,
     }));
     nextStep();
   };
@@ -157,6 +172,12 @@ export function Step3Seats({
           {selectedSeat && (
             <p className="rounded-2xl bg-[#f0f4f8] px-4 py-3 text-sm font-semibold text-[#0a2342]">
               ✓ Siège N°{selectedSeat} sélectionné
+            </p>
+          )}
+
+          {continuedWithoutSeat && !selectedSeat && (
+            <p className="rounded-2xl border border-[#0a2342]/20 bg-[#0a2342]/5 px-4 py-3 text-center text-sm font-medium text-[#0a2342]">
+              ✓ Aucun siège sélectionné — choisissez une option ci-dessous
             </p>
           )}
 
@@ -214,8 +235,8 @@ export function Step3Seats({
 
           <button
             type="button"
-            onClick={() => setSelectedSeat(null)}
-            className="mx-auto mt-2 text-sm text-gray-500 underline transition-colors hover:text-[#0a2342]"
+            onClick={handleContinueWithoutSeat}
+            className="mx-auto mt-2 block text-sm text-gray-500 underline transition-colors hover:text-[#0a2342]"
           >
             Continuer sans choisir de siège →
           </button>

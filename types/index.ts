@@ -61,6 +61,7 @@ export type FormStepProps = {
 }
 
 export const PRIX_SIEGE = 200
+export const PRIX_TEST_ADMISSION = 500
 
 export const INITIAL_FORM_DATA: FormData = {
   campus_id: '',
